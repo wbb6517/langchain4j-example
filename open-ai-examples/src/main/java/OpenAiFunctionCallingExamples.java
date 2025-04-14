@@ -17,9 +17,12 @@ import java.util.List;
 import java.util.UUID;
 
 import static dev.langchain4j.data.message.UserMessage.userMessage;
-import static dev.langchain4j.model.openai.OpenAiChatModelName.GPT_4_O;
+import static dev.langchain4j.model.openai.OpenAiChatModelName.GPT_4_O_MINI;
 
-
+/**
+ * OpenAI 函数调用示例
+ * 演示如何通过工具调用实现复杂逻辑
+ */
 public class OpenAiFunctionCallingExamples {
 
     /**
@@ -33,90 +36,117 @@ public class OpenAiFunctionCallingExamples {
      * 2. Model generates the tool execution request (model decides which tools to invoke and with which arguments)
      * 3. User execute tool(s) to obtain tool result(s) (using ToolExecutor)
      * 4. Model generate final response based on the query and the tool results
+
+     * 天气工具低级配置示例
+     * 演示完整工具调用流程：
+     * 1. 配置工具并发送查询
+     * 2. 模型生成工具执行请求
+     * 3. 执行工具获取结果
+     * 4. 模型生成最终响应
      */
     static class Weather_Low_Level_Configuration {
 
+        // 初始化OpenAI聊天模型
         static ChatLanguageModel openAiModel = OpenAiChatModel.builder()
-                .apiKey(ApiKeys.OPENAI_API_KEY)
-                .modelName(GPT_4_O)
-                .strictTools(true) // https://docs.langchain4j.dev/integrations/language-models/open-ai#structured-outputs-for-tools
-                .logRequests(true)
-                .logResponses(true)
+                //.apiKey(ApiKeys.OPENAI_API_KEY)
+                .baseUrl("http://langchain4j.dev/demo/openai/v1")
+                .modelName(GPT_4_O_MINI)
+                .strictTools(true)  // 强制模型严格使用工具
+                .logRequests(true)  // 记录请求日志
+                .logResponses(true) // 记录响应日志
                 .build();
 
         public static void main(String[] args) {
 
-            // STEP 1: User specify tools and query
-            // Tools
+            /* 步骤1: 用户指定工具和查询 */
+            // 初始化天气工具集
             WeatherTools weatherTools = new WeatherTools();
+            // 从工具类自动生成工具规格说明
             List<ToolSpecification> toolSpecifications = ToolSpecifications.toolSpecificationsFrom(weatherTools);
-            // User query
+
+            // 构建聊天消息列表
             List<ChatMessage> chatMessages = new ArrayList<>();
-            UserMessage userMessage = userMessage("What will the weather be like in London tomorrow?");
+            // 用户消息（已翻译为中文）
+            UserMessage userMessage = userMessage("伦敦明天的天气怎么样？");
             chatMessages.add(userMessage);
-            // Chat request
+
+            // 构建首次聊天请求
             ChatRequest chatRequest = ChatRequest.builder()
                     .messages(chatMessages)
                     .parameters(ChatRequestParameters.builder()
-                            .toolSpecifications(toolSpecifications)
+                            .toolSpecifications(toolSpecifications) // 注入工具规格
                             .build())
                     .build();
 
-
-            // STEP 2: Model generates tool execution request
+            /* 步骤2: 模型生成工具执行请求 */
             ChatResponse chatResponse = openAiModel.chat(chatRequest);
             AiMessage aiMessage = chatResponse.aiMessage();
+            // 获取模型要求的工具执行请求列表
             List<ToolExecutionRequest> toolExecutionRequests = aiMessage.toolExecutionRequests();
-            System.out.println("Out of the " + toolSpecifications.size() + " tools declared in WeatherTools, " + toolExecutionRequests.size() + " will be invoked:");
-            toolExecutionRequests.forEach(toolExecutionRequest -> {
-                System.out.println("Tool name: " + toolExecutionRequest.name());
-                System.out.println("Tool args:" + toolExecutionRequest.arguments());
+
+            // 打印工具调用信息（中文化输出）
+            System.out.printf("在WeatherTools定义的%d个工具中，需要调用%d个工具：%n",
+                    toolSpecifications.size(), toolExecutionRequests.size());
+            toolExecutionRequests.forEach(request -> {
+                System.out.println("工具名称: " + request.name());
+                System.out.println("参数内容: " + request.arguments());
             });
             chatMessages.add(aiMessage);
 
+            /* 步骤3: 执行工具获取结果 */
+            toolExecutionRequests.forEach(request -> {
+                // 创建工具执行器
+                ToolExecutor executor = new DefaultToolExecutor(weatherTools, request);
+                System.out.printf("正在执行工具：%s%n", request.name());
 
-            // STEP 3: User executes tool(s) to obtain tool results
-            toolExecutionRequests.forEach(toolExecutionRequest -> {
-                ToolExecutor toolExecutor = new DefaultToolExecutor(weatherTools, toolExecutionRequest);
-                System.out.println("Now let's execute the tool " + toolExecutionRequest.name());
-                String result = toolExecutor.execute(toolExecutionRequest, UUID.randomUUID().toString());
-                ToolExecutionResultMessage toolExecutionResultMessages = ToolExecutionResultMessage.from(toolExecutionRequest, result);
-                chatMessages.add(toolExecutionResultMessages);
+                // 执行工具并获取结果
+                String result = executor.execute(request, UUID.randomUUID().toString());
+
+                // 将执行结果加入消息链
+                ToolExecutionResultMessage resultMessage = ToolExecutionResultMessage.from(request, result);
+                chatMessages.add(resultMessage);
             });
 
-
-            // STEP 4: Model generates final response
-            ChatRequest chatRequest2 = ChatRequest.builder()
+            /* 步骤4: 生成最终响应 */
+            ChatRequest finalRequest = ChatRequest.builder()
                     .messages(chatMessages)
                     .parameters(ChatRequestParameters.builder()
                             .toolSpecifications(toolSpecifications)
                             .build())
                     .build();
-            ChatResponse finalChatResponse = openAiModel.chat(chatRequest2);
-            System.out.println(finalChatResponse.aiMessage().text()); //According to the payment data, the payment status of transaction T1005 is Pending.
+            ChatResponse finalResponse = openAiModel.chat(finalRequest);
+            System.out.println("最终响应：" + finalResponse.aiMessage().text());
         }
     }
 
+    /**
+     * 天气工具集合
+     * 包含三个工具方法演示不同功能
+     */
     static class WeatherTools {
 
-        @Tool("Returns the weather forecast for tomorrow for a given city")
-        String getWeather(@P("The city for which the weather forecast should be returned") String city) {
-            return "The weather tomorrow in " + city + " is 25°C";
+        @Tool("获取指定城市明天的天气预报")
+        String getWeather(
+                @P("需要查询天气的城市名称") String city
+        ) {
+            return String.format("明天%s的天气是25°C", city);
         }
 
-        @Tool("Returns the date for tomorrow")
+        @Tool("获取明天的日期")
         LocalDate getTomorrow() {
             return LocalDate.now().plusDays(1);
         }
 
-        @Tool("Transforms Celsius degrees into Fahrenheit")
-        double celsiusToFahrenheit(@P("The celsius degree to be transformed into fahrenheit") double celsius) {
+        @Tool("将摄氏温度转换为华氏温度")
+        double celsiusToFahrenheit(
+                @P("需要转换的摄氏温度值") double celsius
+        ) {
             return (celsius * 1.8) + 32;
         }
 
+        // 未添加@Tool注解的方法不会被识别为工具
         String iAmNotATool() {
-            return "I am not a method annotated with @Tool";
+            return "我没有@Tool注解，不是工具方法";
         }
-
     }
 }

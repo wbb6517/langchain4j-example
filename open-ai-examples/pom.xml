@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>dev.langchain4j</groupId>
@@ -16,24 +15,41 @@
 
     <dependencies>
 
+        <!-- OpenAI 集成核心模块，包含：
+             - 聊天模型 (gpt-3.5-turbo, gpt-4等)
+             - 嵌入模型 (text-embedding-ada-002)
+             - 图像生成模型 (DALL-E) -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-open-ai</artifactId>
             <version>1.0.0-beta2</version>
         </dependency>
 
+        <!-- LangChain4j 核心库，提供：
+             - 基础模型抽象
+             - 工具调用框架
+             - 记忆管理
+             - 通用接口定义 -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j</artifactId>
             <version>1.0.0-beta2</version>
         </dependency>
 
+        <!-- 本地嵌入模型实现（作为OpenAI嵌入的替代方案）：
+             - 使用all-MiniLM-L6-v2模型
+             - 无需API调用
+             - 适合快速原型开发 -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-embeddings-all-minilm-l6-v2</artifactId>
             <version>1.0.0-beta2</version>
         </dependency>
 
+        <!-- 轻量级日志实现：
+             - tinylog核心实现
+             - SLF4J兼容适配器
+             - 提供简洁的日志输出 -->
         <dependency>
             <groupId>org.tinylog</groupId>
             <artifactId>tinylog-impl</artifactId>
