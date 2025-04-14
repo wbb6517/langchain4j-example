@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <!-- 项目基础信息 -->
     <groupId>dev.langchain4j</groupId>
     <artifactId>pgvector-example</artifactId>
     <version>1.0.0-beta2</version>
 
     <properties>
+        <!-- JDK 17 是LangChain4j的最低要求版本 -->
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -16,28 +17,50 @@
 
     <dependencies>
 
+        <!-- PgVector集成核心库 -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-pgvector</artifactId>
             <version>1.0.0-beta2</version>
+            <!-- 提供以下功能：
+                 - 向量存储管理
+                 - 相似性搜索接口
+                 - 元数据过滤支持
+                 - 自动表结构创建 -->
         </dependency>
 
+        <!-- Testcontainers PostgreSQL支持 -->
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>postgresql</artifactId>
             <version>1.19.7</version>
+            <!-- 用于测试环境：
+                 - 自动启动PgVector容器（基于pgvector/pgvector镜像）
+                 - 支持pgvector扩展
+                 - 版本选择理由：与PgVector 0.5+兼容 -->
         </dependency>
 
+        <!-- 本地嵌入模型实现 -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-embeddings-all-minilm-l6-v2</artifactId>
             <version>1.0.0-beta2</version>
+            <!-- 特性：
+                 - 使用all-MiniLM-L6-v2模型
+                 - 生成384维向量
+                 - 无需API调用
+                 - 适合快速原型开发 -->
         </dependency>
 
+        <!-- 轻量级日志实现 -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
             <version>2.0.12</version>
+            <!-- 日志配置：
+                 - 控制台输出
+                 - 默认INFO级别
+                 - 简单日志格式 -->
         </dependency>
 
     </dependencies>
